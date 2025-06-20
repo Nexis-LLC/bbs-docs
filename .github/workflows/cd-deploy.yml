@@ -10,28 +10,35 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' }}
+
+    if: >
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.event == 'push' &&
+         github.event.workflow_run.head_branch == 'main' }}
 
     permissions:
       pages: write
       id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      actions: read
 
     steps:
+      - name: Checkout repo at correct commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
       - name: Download Docusaurus build artifact
         uses: actions/download-artifact@v4
         with:
           name: docusaurus-build-artifact
+          run-id: ${{ github.event.workflow_run.id }}
           path: ./build
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      - name: Upload artifact and Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
+      - name: Deploy to GitHub Pages
         id: deployment
+        uses: actions/deploy-pages@v4
         with:
           artifact_path: ./build
