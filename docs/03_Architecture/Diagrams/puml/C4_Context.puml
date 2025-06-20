@@ -1,0 +1,41 @@
+@startuml  C4_Context
+!define C4P https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master
+!includeurl C4P/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+skinparam RectangleBackgroundColor #E8F0FE
+skinparam RectangleBorderColor #0052CC
+skinparam RectangleRoundCorner 15
+
+skinparam ActorBackgroundColor #FFFAF0
+skinparam ActorBorderColor #FF8C00
+skinparam ActorFontColor #333333
+skinparam ActorRoundCorner 15
+
+skinparam LegendBackgroundColor #F4F5F7
+skinparam LegendBorderColor #091E42
+
+Person(traveler, "Traveler", "Web/Mobile user\nbooks tickets")
+Person(operator, "Bus Operator", "Manages\nroutes & seats")
+Person(admin, "Admin", "Configures & monitors\nsystem health")
+
+System_Boundary(btb, "Bus Ticket Booking System") {
+  System(btb_core, "Booking System", "Handles real-time\nbooking, payments, monitoring")
+}
+
+System_Ext(keycloak, "Keycloak", "OAuth2/OIDC\nIdentity Provider")
+System_Ext(paypal, "PayPal", "External Payment\nGateway")
+
+Rel(traveler, btb_core, "Books tickets\n(HTTPS)")
+Rel(operator, btb_core, "Manages routes\n& seats (HTTPS)")
+Rel(admin, btb_core, "Monitors & configs\n(HTTPS)")
+
+Rel(btb_core, keycloak, "Validates tokens\nvia OAuth2")
+Rel(btb_core, paypal, "Processes payments\nvia REST")
+
+note left of keycloak
+  Deployed locally in Kubernetes cluster
+end note
+
+@enduml

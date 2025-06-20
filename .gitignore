@@ -21,3 +21,5 @@ yarn-error.log*
 
 .idea/
 *.iml
+
+docs/03_Architecture/Diagrams/generated_svgs/

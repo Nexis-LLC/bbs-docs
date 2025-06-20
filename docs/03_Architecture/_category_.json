@@ -1,0 +1,9 @@
+{
+  "label": "3. Architecture",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "title": "Architecture Overview",
+    "description": "Detailed description of the architectural decisions and system components."
+  }
+}

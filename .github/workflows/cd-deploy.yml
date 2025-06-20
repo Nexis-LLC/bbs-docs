@@ -4,14 +4,36 @@ on:
   push:
     branches:
       - main
+
 jobs:
   deploy:
     name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
 
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+
+      - name: Setup Java for PlantUML
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Generate PlantUML Diagrams
+        uses: Timmy/plantuml-action@v1
+        with:
+          args: "-tsvg -o ../generated_svgs docs/03_Architecture/Diagrams/puml"
+
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -26,6 +48,7 @@ jobs:
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
+        id: deployment
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build

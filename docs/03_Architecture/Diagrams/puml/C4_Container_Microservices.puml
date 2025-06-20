@@ -1,0 +1,68 @@
+@startuml C4_Container_Microservices_Revised
+!define C4P https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master
+!includeurl C4P/C4_Container.puml
+
+skinparam linetype ortho
+skinparam nodesep 50
+skinparam ranksep 200
+scale 1.5
+left to right direction
+skinparam defaultFontSize 14
+skinparam componentStyle rectangle
+
+Person(traveler, "Traveler", "Books seats, pays, gets notifications") #Blue
+Person(operator, "Operator", "Manages routes and pricing") #Blue
+Person(admin, "Admin", "Monitors system and manages configs") #Blue
+
+System_Ext(paypal, "PayPal", "Payment Gateway")
+System_Ext(keycloak, "Keycloak", "OAuth2/OIDC Provider")
+
+System_Boundary(core, "Core Services") {
+  Container(booking, "Booking Service", "Spring Boot", "gRPC API\nManages seat reservations") #LightGreen
+  Container(payment, "Payment Service", "Spring Boot", "Saga pattern\nHandles payment transactions") #LightGreen
+  Container(seat, "Seat Inventory", "Spring Boot", "Real-time updates\nManages seat availability (Redis cache)") #LightGreen
+}
+
+System_Boundary(support, "Support Services") {
+  Container(user, "User Service", "Spring Boot", "Manages user profiles") #LightBlue
+  Container(route, "Route Management", "Spring Boot", "Dynamic pricing\nManages routes and schedules") #LightBlue
+  Container(notification, "Notifications", "Spring Boot", "Email/SMS integration for user notifications") #LightBlue
+  Container(admin_cfg, "Admin Config", "Spring Boot", "RBAC\nProvides admin UI for configuration and metrics") #LightBlue
+  Container(audit, "Audit Service", "Spring Boot", "Event auditing and storage") #LightBlue
+}
+
+System_Boundary(infra, "Infrastructure") {
+  ContainerDb(pg, "PostgreSQL", "ACID transactions\nStores bookings, user profiles, route data") #Gray
+  ContainerDb(redis, "Redis", "Cache layer\nCaches seat availability (Seat Service), stores idempotency keys (Payment Service)") #Gray
+  ContainerQueue(kafka, "Kafka", "Event streaming\nPub/Sub for booking, payment, seat updates, notifications, audit logs") #Gray
+}
+
+Rel(booking, kafka, "SeatBookedEvt", "Kafka (prod)")
+Rel(seat, kafka, "Consumes seat updates", "Kafka (cons)")
+Rel(payment, kafka, "PaymentStatusEvt", "Kafka (prod)")
+Rel(notification, kafka, "Consumes events for notifications", "Kafka (cons)")
+Rel(audit, kafka, "Consumes all events for auditing", "Kafka (cons)")
+
+Rel(traveler, booking, "Reserve seat", "gRPC")
+Rel(traveler, payment, "Pay link", "REST")
+Rel(traveler, user, "Profile ops", "REST")
+Rel(operator, route, "Manage routes", "REST")
+Rel(admin, admin_cfg, "Admin UI", "REST")
+
+Rel(payment, paypal, "Processes payments via", "REST")
+Rel(user, keycloak, "Validates user tokens via", "OIDC JWT")
+Rel(admin_cfg, keycloak, "Manages roles via", "SCIM")
+
+Rel(booking, seat, "Checks availability via", "gRPC")
+Rel(booking, pg, "Persists booking data via", "JDBC")
+Rel(booking, redis, "Caches booking-related data via", "Redis")
+
+Rel(seat, redis, "Updates seat cache via", "Redis")
+Rel(payment, redis, "Checks idempotency via", "Redis")
+Rel(payment, booking, "Saga callback (Transaction status update) via", "gRPC")
+Rel(notification, user, "Fetches user contact info via", "REST")
+
+Rel(kafka, audit, "Sends all events to audit service", "Kafka (cons)")
+Rel(audit, pg, "Stores audit logs in", "JDBC")
+
+@enduml
