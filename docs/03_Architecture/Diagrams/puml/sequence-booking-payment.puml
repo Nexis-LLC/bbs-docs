@@ -1,0 +1,125 @@
+@startuml
+
+participant Traveler as "User"
+participant APIGateway as "API Gateway"
+participant BookingService as "Booking Service"
+participant SeatService as "Seat Service"
+participant BookingDB as "PostgreSQL (Booking DB)"
+participant RedisCache as "Redis (Seat Cache)"
+participant Kafka as "Kafka"
+participant PaymentService as "Payment Service"
+participant PayPal as "PayPal Gateway"
+participant NotificationService as "Notification Service"
+participant TimeoutWorker as "Timeout Worker"
+
+Traveler -> APIGateway : POST /book {userId, routeId, seatId}
+activate APIGateway
+APIGateway -> BookingService : gRPC ReserveSeat(request)
+activate BookingService
+
+BookingService -> SeatService : CheckAvailability(seatId)
+activate SeatService
+SeatService -> RedisCache : GET seatId
+alt Cache hit
+    RedisCache --> SeatService : available
+else Cache miss
+    SeatService -> "PostgreSQL (Seat Inventory)" : SELECT FOR UPDATE seatId
+    alt Seat available
+        "PostgreSQL (Seat Inventory)" --> SeatService : locked & available
+        SeatService -> RedisCache : SET seatId TTL=10s
+    else Seat occupied
+        "PostgreSQL (Seat Inventory)" --> SeatService : unavailable
+        SeatService --> BookingService : error=SeatUnavailable
+        deactivate SeatService
+
+        BookingService --> APIGateway : HTTP 400 {error="Seat unavailable"}
+        deactivate BookingService
+        APIGateway --> Traveler : HTTP 400 {error="Seat unavailable"}
+        deactivate APIGateway
+        return
+    end
+end
+SeatService --> BookingService : available
+deactivate SeatService
+
+BookingService -> BookingDB : INSERT booking(state=PENDING)
+activate BookingDB
+BookingDB --> BookingService : OK
+deactivate BookingDB
+BookingService -> Kafka : publish SeatReservedEvent
+note right: Event used for analytics and microservices
+
+BookingService -> PaymentService : gRPC InitiatePayment(bookingId, amount)
+activate PaymentService
+PaymentService -> PayPal : CreatePayment(amount)
+activate PayPal
+PayPal --> PaymentService : paymentId, status=PENDING
+deactivate PayPal
+PaymentService --> BookingService : paymentPending(paymentId)
+deactivate PaymentService
+
+BookingService --> APIGateway : HTTP 200 {bookingId, status=PENDING}
+deactivate BookingService
+APIGateway --> Traveler : HTTP 200 {bookingId, status=PENDING}
+deactivate APIGateway
+
+PayPal -> PaymentService : webhook PaymentSuccess|PaymentFailed
+activate PaymentService
+alt Payment successful
+    PaymentService -> Kafka : publish PaymentSuccessEvent
+else Payment failed
+    PaymentService -> Kafka : publish PaymentFailedEvent
+end
+deactivate PaymentService
+
+Kafka -> BookingService : PaymentSuccessEvent
+activate BookingService
+BookingService -> BookingDB : UPDATE booking SET state=CONFIRMED
+activate BookingDB
+BookingDB --> BookingService : OK
+deactivate BookingDB
+BookingService -> NotificationService : sendConfirmation(bookingId)
+activate NotificationService
+NotificationService --> BookingService : OK
+deactivate NotificationService
+BookingService -> Kafka : publish BookingCompletedEvent
+BookingService -> APIGateway : send SSE {bookingId, status=CONFIRMED}
+deactivate BookingService
+note right: Frontend receives SSE update
+
+Kafka -> BookingService : PaymentFailedEvent
+activate BookingService
+BookingService -> BookingDB : UPDATE booking SET state=FAILED
+activate BookingDB
+BookingDB --> BookingService : OK
+deactivate BookingDB
+BookingService -> NotificationService : sendFailureNotification(bookingId)
+activate NotificationService
+NotificationService --> BookingService : OK
+deactivate NotificationService
+BookingService -> Kafka : publish BookingFailedEvent
+deactivate BookingService
+
+TimeoutWorker -> Kafka : publish BookingTimeoutEvent after 10m
+activate TimeoutWorker
+deactivate TimeoutWorker
+
+Kafka -> BookingService : BookingTimeoutEvent
+activate BookingService
+BookingService -> BookingDB : UPDATE booking SET state=CANCELLED
+activate BookingDB
+BookingDB --> BookingService : OK
+deactivate BookingDB
+BookingService -> SeatService : ReleaseSeat(seatId)
+activate SeatService
+SeatService -> "PostgreSQL (Seat Inventory)" : UPDATE seats SET locked = false WHERE seatId = ?
+SeatService -> RedisCache : DEL seatId
+deactivate SeatService
+BookingService -> NotificationService : sendTimeoutNotification(bookingId)
+activate NotificationService
+NotificationService --> BookingService : OK
+deactivate NotificationService
+deactivate BookingService
+note right: Timeout cancels PENDING bookings after 10 minutes
+
+@enduml

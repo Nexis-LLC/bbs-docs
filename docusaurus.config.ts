@@ -76,6 +76,7 @@ const config: Config = {
           items: [
             { label: 'Vision Document', to: '/docs/Vision' },
             { label: 'SRS', to: '/docs/SRS' },
+            { label: 'Architecture', to: '/docs/architecture' },
           ],
         },
         {

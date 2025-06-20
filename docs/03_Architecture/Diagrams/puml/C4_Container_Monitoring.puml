@@ -1,0 +1,30 @@
+@startuml C4_Container_Monitoring
+!define C4P https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master
+!includeurl C4P/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+skinparam componentStyle rectangle
+skinparam nodesep 150
+skinparam ranksep 150
+
+Person(admin, "Admin", "Monitors and configures system health") #LightBlue
+
+System_Ext(btb_core, "Booking System", "Handles booking, payments, monitoring") #LightGreen
+
+Rel(admin, btb_core, "Monitors & configs", "HTTPS")
+
+System_Boundary(monitoring, "Monitoring & Observability") {
+  Container(elk,       "ELK Stack",      "Elasticsearch, Logstash, Kibana", "Centralized logging & dashboard") #Orange
+  Container(prom,      "Prometheus",     "Prometheus",                "Metric collection & alerting") #Orange
+  Container(grafana,   "Grafana",        "Grafana",                   "Visualization of metrics & dashboards") #Orange
+  Container(zipkin,    "Zipkin",         "Zipkin",                    "Distributed tracing") #Orange
+}
+
+Rel(btb_core, elk,      "Sends logs via Logstash/Beats", "TCP/HTTP")
+Rel(btb_core, prom,     "Exposes metrics endpoint (Prometheus scrape)", "HTTP")
+Rel(prom, grafana,     "Data source (metrics)", "HTTP")
+Rel(elk, grafana,      "Data source (logs)",    "Elasticsearch API")
+Rel(btb_core, zipkin,   "Sends tracing spans",   "HTTP")
+Rel(zipkin, grafana,    "Data source (traces)", "Zipkin plugin")
+
+@enduml

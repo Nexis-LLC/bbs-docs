@@ -1,0 +1,48 @@
+@startuml Container_General
+!define C4P https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master
+!includeurl C4P/C4_Container.puml
+
+LAYOUT_TOP_DOWN()
+
+skinparam monochrome false
+skinparam componentStyle rectangle
+
+Person(user, "End User", "Web or Mobile Application User")
+
+System_Ext(mobile_app, "Mobile Application", "React Native — Cross-platform client app")
+
+System_Boundary(k8s, "Kubernetes Cluster") {
+  Container(web_app, "Web Application", "React SPA — Browser-based client") #Blue
+  Container(nginx, "Nginx Ingress Controller", "Nginx — Reverse Proxy / Load Balancer") #Blue
+  Container(api_gateway, "API Gateway", "Spring Cloud Gateway — Routing, Auth, Rate Limiting") #Blue
+  Container(service_registry, "Service Registry", "Netflix Eureka — Service Discovery") #Blue
+
+  together {
+    Container(microservices, "Microservices", "Spring Boot — Auth, User, Notification, Payment, Billing, Ordering") #Green
+  }
+
+  together {
+    ContainerDb(data_stores, "Data Stores", "PostgreSQL, Redis, MongoDB, Elasticsearch — Persistent & Cache Storage") #Gray
+  }
+
+  together {
+    Container(monitoring, "Monitoring", "Prometheus, Grafana, Zipkin, ELK — Observability stack") #Orange
+  }
+}
+
+Rel(user, web_app, "Uses", "HTTPS")
+Rel(user, mobile_app, "Uses", "HTTPS")
+Rel(web_app, nginx, "API Calls", "HTTPS")
+Rel(mobile_app, nginx, "API Calls", "HTTPS")
+
+Rel(nginx, api_gateway, "Routes")
+Rel(api_gateway, microservices, "Forwards API Requests")
+
+Rel(service_registry, microservices, "Registers")
+Rel(microservices, service_registry, "Discovers")
+
+Rel(microservices, data_stores, "Reads/Writes")
+Rel(monitoring, api_gateway, "Monitors")
+Rel(monitoring, microservices, "Monitors")
+
+@enduml

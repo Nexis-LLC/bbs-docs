@@ -14,6 +14,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Java for PlantUML
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Generate PlantUML Diagrams
+        uses: Timmy/plantuml-action@v1
+        with:
+          args: "-tsvg -o ../generated_svgs docs/03_Architecture/Diagrams/puml"
+
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
