@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'Bus Ticket Booking System Documentation',
   tagline: 'Comprehensive overview of system architecture, design, and operations',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/bus-icon-removed-bg.png',
 
   url: 'https://ArturChernets.github.io',
   baseUrl: '/bbs-docs/',
