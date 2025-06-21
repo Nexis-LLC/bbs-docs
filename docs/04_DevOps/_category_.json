@@ -1,0 +1,9 @@
+{
+  "label": "4. DevOps",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "title": "DevOps Overview",
+    "description": "Information about CI/CD, deployment, monitoring, and secrets management."
+  }
+}
