@@ -32,7 +32,7 @@ jobs:
       - name: Generate PlantUML Diagrams
         uses: Timmy/plantuml-action@v1
         with:
-          args: "-tsvg -o docs/03_Architecture/Diagrams/generated_svgs docs/03_Architecture/Diagrams/puml"
+          args: "-tsvg -o ../generated_svgs docs/03_Architecture/Diagrams/puml"
 
 
       - name: Setup Node.js
