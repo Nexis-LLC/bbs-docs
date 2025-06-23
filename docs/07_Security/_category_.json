@@ -1,0 +1,9 @@
+{
+  "label": "7. Security",
+  "position": 7,
+  "link": {
+    "type": "generated-index",
+    "title": "Security Design",
+    "description": "Information on authentication, authorization, and threat modeling."
+  }
+}
