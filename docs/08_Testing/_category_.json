@@ -1,0 +1,9 @@
+{
+  "label": "8. Testing",
+  "position": 8,
+  "link": {
+    "type": "generated-index",
+    "title": "Testing Strategy",
+    "description": "Overview of testing approaches, test cases, and load testing plans."
+  }
+}
