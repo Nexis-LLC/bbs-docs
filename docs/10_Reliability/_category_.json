@@ -1,0 +1,9 @@
+{
+  "label": "10. Reliability",
+  "position": 10,
+  "link": {
+    "type": "generated-index",
+    "title": "Reliability Engineering",
+    "description": "Techniques for external service resilience, circuit breakers, and timeouts."
+  }
+}
