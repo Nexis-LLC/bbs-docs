@@ -1,0 +1,9 @@
+{
+  "label": "9. Scalability",
+  "position": 9,
+  "link": {
+    "type": "generated-index",
+    "title": "Scalability Considerations",
+    "description": "Strategies for horizontal/vertical scaling, caching, queues, and database sharding."
+  }
+}
